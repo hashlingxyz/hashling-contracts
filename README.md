@@ -41,9 +41,7 @@ Compiler: solc 0.8.35, no assembly. Verify against Blockscout with
 
 ## Status
 
-Not yet audited. An independent review is planned after HashlingSwap v2
-(multi-hop routing) ships. Treat these as unaudited contracts and size trades
-accordingly.
+Immutable, source-verified, covered by property, invariant and fork tests (`test/`). No independent audit yet.
 
 ## License
 
