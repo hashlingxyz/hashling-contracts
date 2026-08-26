@@ -1,59 +1,76 @@
 # Security
 
-Hashling runs two contracts on Robinhood Chain (chain 4663). Both are
-source-verified on Blockscout, immutable, and hold no user funds between
-transactions. Neither has an owner, a pause, or an upgrade path.
+Hashling's current launch path on Robinhood Chain (chain 4663) is Factory V2,
+its dedicated migrator and its permanent position locker. The repository also
+contains the legacy V1 factory and the separate HashlingSwap V3 trading wrapper.
 
-| Contract | Address | What it does | What it holds |
-|---|---|---|---|
-| HashlingFactory | [`0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523`](https://robinhoodchain.blockscout.com/address/0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523) | Bonding-curve launchpad: `launch`, `buy`, `sell`, creator fee claims | Curve reserves for its tokens (ETH and unsold supply). No admin can withdraw them. `graduate()` reverts until the migrator ships. |
-| HashlingSwap | [`0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1`](https://robinhoodchain.blockscout.com/address/0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1) | 1% fee wrapper over Uniswap v3 SwapRouter02: `buy` (ETH → token), `sell` (token → ETH) | Nothing. ETH and tokens pass through inside one call; the contract's balance is zero after every call and it refuses direct ETH. |
+The deployed contracts are source-verified, immutable and have no owner, pause
+or upgrade path.
 
-Fee recipient for both: `0x80eFCeD0d87469dCD4477064eF937d14c07D3d99` (fixed at deploy).
+| Component | Address | What it holds |
+|---|---|---|
+| Factory V2 | [`0xC73A79A974fD175927b6b87C86d57081c9d2F3C9`](https://robinhoodchain.blockscout.com/address/0xC73A79A974fD175927b6b87C86d57081c9d2F3C9) | Curve ETH reserves and unsold token supply until graduation or refund |
+| V2 Migrator | [`0x9E662756265425e9DF57BDE7957C0cA0200c10FB`](https://robinhoodchain.blockscout.com/address/0x9E662756265425e9DF57BDE7957C0cA0200c10FB) | Migration assets only while a graduation call executes |
+| V2 Position Locker | [`0x3b8f634b1773D7F7A5fff91AAfFf3e4928Be50fa`](https://robinhoodchain.blockscout.com/address/0x3b8f634b1773D7F7A5fff91AAfFf3e4928Be50fa) | Graduated Uniswap V3 position NFTs permanently; collected fees until claimed |
+| HashlingSwap | [`0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1`](https://robinhoodchain.blockscout.com/address/0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1) | Nothing between transactions |
+| Legacy V1 Factory | [`0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523`](https://robinhoodchain.blockscout.com/address/0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523) | Curve reserves for legacy V1 launches |
+
+Protocol fee recipient:
+`0x80eFCeD0d87469dCD4477064eF937d14c07D3d99` (fixed at deployment).
 
 ## Status
 
-- **Not yet audited.** An independent review is planned after HashlingSwap v2
-  (multi-hop routing) lands. Until then, treat these as unaudited contracts and
-  size trades accordingly.
-- Tests (Foundry, `contracts/test/`): 15 property tests at 5,000 fuzz runs
-  each, 4 invariant suites at 512 runs × depth 100, one mainnet fork test
-  that buys and sells a real token through the real router.
-- Compiler: solc 0.8.35, no assembly, OpenZeppelin `ReentrancyGuard` and
-  `SafeERC20` only.
+- **Not independently audited.** Treat the contracts as unaudited and size
+  transactions accordingly.
+- Compiler: solc 0.8.35, optimizer 200 runs, Osaka EVM target.
+- OpenZeppelin dependency is pinned in `foundry.lock`.
+- The test suite covers unit, property, invariant, drift and mainnet-fork paths.
 
-## Invariants we test
+## Factory V2 safety properties
 
-HashlingSwap
-- ETH out ≤ ETH in minus the fee, on every path.
-- Fee is exactly `amount * feeBps / 10_000`, paid to the fixed recipient.
-- Contract ETH, WETH and token balances are zero after every call.
+- Fixed token supply is minted once at launch; there is no later mint path.
+- Curve reserves leave only through successful sells, graduation migration or
+  the seven-day refund fallback.
+- Trading fees are split 80% to the token creator and 20% to the fixed protocol
+  recipient.
+- A blocked migration can be switched permissionlessly after the delay; no
+  privileged keeper is required.
+- Refund claims never expire and there is no sweep or recovery path for
+  unclaimed refund reserves.
+- The migrator uses the pinned Uniswap V3 1% fee tier and validates the pool
+  before committing migration assets.
+- Graduated position NFTs are minted directly to the locker. The locker has no
+  transfer, decrease-liquidity, rescue or administrative withdrawal path.
+- Locker fee claims are split 80/20 between creator and protocol.
+
+## HashlingSwap safety properties
+
+- The fee is exactly `amount * feeBps / 10_000`, paid to the fixed recipient.
+- ETH out cannot exceed ETH in minus the fee.
+- Contract ETH, WETH and token balances are zero after successful calls.
 - Token allowance to the router is reset to zero after every sell.
-- Sell slippage (`minOut`) is checked on ETH *after* the fee.
-- Reentrancy is blocked; a fee recipient that refuses ETH reverts the trade
-  rather than stranding funds; direct ETH transfers are refused.
+- Sell slippage is checked on ETH after the fee.
+- Reentrancy is blocked and direct ETH transfers are refused.
 
-HashlingFactory
-- Reserve conservation: curve ETH equals sum of buys minus sells minus fees.
-- No path moves reserves except `sell` and (once enabled) `graduate`.
-- Fee split is 80/20 creator/protocol, computed on trade value.
+HashlingSwap supports Uniswap V3 only. Graduated Flap V2 pool support is not
+part of this deployment and would require a separate contract.
 
 ## What can go wrong
 
-- **Uniswap pool risk.** HashlingSwap forwards to a Uniswap v3 pool chosen by
-  the front end (deepest liquidity for the token). Thin pools move a lot on
-  small orders; the front end simulates first and applies a 5% slippage cap,
-  but price impact is real and is the user's.
-- **Token risk.** Fee-on-transfer, blacklisting or rebasing tokens can make a
-  `sell` revert or return less than quoted. The simulation catches reverts
-  before a wallet prompt; it cannot make a bad token good.
-- **Front-end risk.** The site is static and open; the contract does exactly
-  what the wallet confirmation shows. Verify the `to` address in your wallet:
-  it should be one of the two contracts above (or, for hood.fun curve tokens,
-  hood.fun's verified factory).
+- **Smart-contract risk.** Source verification and tests are not an independent
+  audit. An undiscovered implementation or integration defect can still exist.
+- **Pool risk.** Thin or manipulated pools can move sharply. Front-end
+  simulation and slippage limits reduce accidental execution but do not remove
+  market risk.
+- **Token risk.** Fee-on-transfer, rebasing, blacklisting or non-standard tokens
+  can revert or return less than expected.
+- **External-protocol risk.** Graduation and pool trades depend on Uniswap V3
+  contracts and Robinhood Chain execution.
+- **Front-end risk.** Always verify the wallet transaction's destination against
+  [DEPLOYMENTS.md](DEPLOYMENTS.md). A project listing is not an endorsement.
 
 ## Reporting
 
-Email `support@hashling.xyz` with "SECURITY" in the subject. Please give us a
-reasonable window before public disclosure. Real findings are paid at our
-discretion in ETH; there is no formal bounty programme yet.
+Email `support@hashling.xyz` with `SECURITY` in the subject. Please allow a
+reasonable remediation window before public disclosure. Real findings may be
+rewarded at Hashling's discretion; there is no formal bounty programme.
