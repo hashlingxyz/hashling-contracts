@@ -2,7 +2,8 @@
 
 Hashling's current launch path on Robinhood Chain (chain 4663) is Factory V2,
 its dedicated migrator and its permanent position locker. The repository also
-contains the legacy V1 factory and the separate HashlingSwap V3 trading wrapper.
+contains the legacy V1 factory and separate HashlingSwap V3 and HashlingV2Swap
+V2 trading wrappers.
 
 The deployed contracts are source-verified, immutable and have no owner, pause
 or upgrade path.
@@ -13,6 +14,7 @@ or upgrade path.
 | V2 Migrator | [`0x9E662756265425e9DF57BDE7957C0cA0200c10FB`](https://robinhoodchain.blockscout.com/address/0x9E662756265425e9DF57BDE7957C0cA0200c10FB) | Migration assets only while a graduation call executes |
 | V2 Position Locker | [`0x3b8f634b1773D7F7A5fff91AAfFf3e4928Be50fa`](https://robinhoodchain.blockscout.com/address/0x3b8f634b1773D7F7A5fff91AAfFf3e4928Be50fa) | Graduated Uniswap V3 position NFTs permanently; collected fees until claimed |
 | HashlingSwap | [`0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1`](https://robinhoodchain.blockscout.com/address/0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1) | Nothing between transactions |
+| HashlingV2Swap | [`0x84a7280190012DF7C03B1a137890ff27a1dF9bbB`](https://robinhoodchain.blockscout.com/address/0x84a7280190012DF7C03B1a137890ff27a1dF9bbB) | Nothing introduced by a normal trade remains after that transaction |
 | Legacy V1 Factory | [`0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523`](https://robinhoodchain.blockscout.com/address/0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523) | Curve reserves for legacy V1 launches |
 
 Protocol fee recipient:
@@ -25,6 +27,8 @@ Protocol fee recipient:
 - Compiler: solc 0.8.35, optimizer 200 runs, Osaka EVM target.
 - OpenZeppelin dependency is pinned in `foundry.lock`.
 - The test suite covers unit, property, invariant, drift and mainnet-fork paths.
+  HashlingV2Swap fork tests compare direct Flap Portal execution against the
+  wrapper for OwnerCoin `7777` and the older graduated `8888` generation.
 
 ## Factory V2 safety properties
 
@@ -52,8 +56,28 @@ Protocol fee recipient:
 - Sell slippage is checked on ETH after the fee.
 - Reentrancy is blocked and direct ETH transfers are refused.
 
-HashlingSwap supports Uniswap V3 only. Graduated Flap V2 pool support is not
-part of this deployment and would require a separate contract.
+## HashlingV2Swap safety properties
+
+- Router02 and the fixed fee recipient are constructor immutables. The factory
+  and WETH are read from Router02 during construction and stored immutably.
+- Every trade requires the router factory's canonical token/WETH pair to exist.
+- Buys take 1% from ETH input, route pair output directly to the buyer and check
+  slippage on the buyer's actual balance increase after token mechanics.
+- Sells measure the tokens actually received, take 1% from gross ETH output,
+  check slippage after that fee and reset the Router02 allowance to zero.
+- A normal trade leaves no new ETH or token residue. Direct ETH is refused and
+  router ETH is accepted only while a sell is executing.
+- Reentrancy is blocked. A fee-recipient refusal or any residue mismatch reverts
+  the whole transaction.
+- The mandatory mainnet-fork suite proves parity with direct Portal execution
+  for both tested graduated Flap token generations; an unset `FORK_RPC` fails.
+
+`HashlingSwap` supports Uniswap V3 only. `HashlingV2Swap` is a separate,
+venue-generic execution layer for canonical WETH-paired Uniswap V2 pools. It
+checks pair existence, not Flap lifecycle status. Hashling's Flap adapter
+separately requires Portal status `4` and exact equality between the
+Portal-reported pool and the router factory's pair before exposing the V2 route.
+Direct callers must perform their own lifecycle and venue checks.
 
 ## What can go wrong
 
@@ -65,7 +89,11 @@ part of this deployment and would require a separate contract.
 - **Token risk.** Fee-on-transfer, rebasing, blacklisting or non-standard tokens
   can revert or return less than expected.
 - **External-protocol risk.** Graduation and pool trades depend on Uniswap V3
-  contracts and Robinhood Chain execution.
+  or V2 contracts, the Flap Portal where applicable, and Robinhood Chain
+  execution.
+- **Lifecycle-adapter risk.** The Flap Portal is upgradeable. A layout or
+  semantic change can disable Hashling's graduation proof; the site then
+  refuses the V2 route until the adapter is updated.
 - **Front-end risk.** Always verify the wallet transaction's destination against
   [DEPLOYMENTS.md](DEPLOYMENTS.md). A project listing is not an endorsement.
 

@@ -11,6 +11,7 @@ your wallet against this list.
 | V2 Migrator | [`0x9E662756265425e9DF57BDE7957C0cA0200c10FB`](https://robinhoodchain.blockscout.com/address/0x9E662756265425e9DF57BDE7957C0cA0200c10FB) |
 | V2 Position Locker | [`0x3b8f634b1773D7F7A5fff91AAfFf3e4928Be50fa`](https://robinhoodchain.blockscout.com/address/0x3b8f634b1773D7F7A5fff91AAfFf3e4928Be50fa) |
 | HashlingSwap (Uniswap V3 only) | [`0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1`](https://robinhoodchain.blockscout.com/address/0x16Bc3720C90c3d5b5B99acf2Df746bAC03Cb53a1) |
+| HashlingV2Swap (Uniswap V2) | [`0x84a7280190012DF7C03B1a137890ff27a1dF9bbB`](https://robinhoodchain.blockscout.com/address/0x84a7280190012DF7C03B1a137890ff27a1dF9bbB) |
 | Legacy V1 Factory | [`0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523`](https://robinhoodchain.blockscout.com/address/0x3b38c6Fa9Cc41d3A20d64111325231E7dEF7D523) |
 | Protocol fee recipient | [`0x80eFCeD0d87469dCD4477064eF937d14c07D3d99`](https://robinhoodchain.blockscout.com/address/0x80eFCeD0d87469dCD4477064eF937d14c07D3d99) |
 
@@ -22,6 +23,21 @@ your wallet against this list.
 | NonfungiblePositionManager | `0x73991a25C818Bf1f1128dEAaB1492D45638DE0D3` |
 | SwapRouter02 | `0xCaf681a66D020601342297493863E78C959E5cb2` |
 | Wrapped native token (WETH) | `0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73` |
+
+### HashlingV2Swap fixed configuration
+
+Deployed in transaction
+[`0xa781adb1536cb115ee156f69837a4bfd79cdf6084dfc18f1c43e75461cb2ffb8`](https://robinhoodchain.blockscout.com/tx/0xa781adb1536cb115ee156f69837a4bfd79cdf6084dfc18f1c43e75461cb2ffb8).
+The constructor fixes Router02, the protocol fee recipient and `100` fee basis
+points. The wrapper reads the factory and WETH from Router02 during construction
+and stores both immutably.
+
+| Item | Value |
+|---|---|
+| Uniswap V2 Router02 | `0x89e5DB8B5aA49aA85AC63f691524311AEB649eba` |
+| Canonical V2 factory | `0x8bcEaA40B9AcdfAedF85AdF4FF01F5Ad6517937f` |
+| Wrapped native token (WETH) | `0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73` |
+| Protocol fee | `100` basis points (1%) |
 
 ### Mainnet canary
 
