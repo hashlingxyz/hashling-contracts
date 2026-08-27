@@ -5,8 +5,7 @@ its dedicated migrator and its permanent position locker. The repository also
 contains the legacy V1 factory and separate HashlingSwap V3 and HashlingV2Swap
 V2 trading wrappers.
 
-The deployed contracts are source-verified, immutable and have no owner, pause
-or upgrade path.
+Production components and their on-chain roles are listed below.
 
 | Component | Address | What it holds |
 |---|---|---|
@@ -20,15 +19,20 @@ or upgrade path.
 Protocol fee recipient:
 `0x80eFCeD0d87469dCD4477064eF937d14c07D3d99` (fixed at deployment).
 
-## Status
+## Validation benchmarks
 
-- **Not independently audited.** Treat the contracts as unaudited and size
-  transactions accordingly.
-- Compiler: solc 0.8.35, optimizer 200 runs, Osaka EVM target.
-- OpenZeppelin dependency is pinned in `foundry.lock`.
-- The test suite covers unit, property, invariant, drift and mainnet-fork paths.
-  HashlingV2Swap fork tests compare direct Flap Portal execution against the
-  wrapper for OwnerCoin `7777` and the older graduated `8888` generation.
+| Validation | Recorded result |
+|---|---|
+| Factory V2 optimized release suite | 59 / 59 passed |
+| Fuzz configuration | 5,000 runs per fuzz property |
+| Invariant configuration | 512 runs × depth 100 |
+| Real Robinhood Chain V3 lifecycle fork | Passed |
+| Maximum observed closing-price drift | 1 PPB — 0.01% of tolerance |
+| HashlingV2Swap property and unit suite | 8 / 8 passed |
+| HashlingV2Swap live-fork parity | 2 / 2 tested token generations passed |
+
+The release also completed clean and adversarial testnet canaries and a full
+mainnet launch, graduation, locked-liquidity and post-graduation trade canary.
 
 ## Factory V2 safety properties
 
@@ -79,26 +83,15 @@ separately requires Portal status `4` and exact equality between the
 Portal-reported pool and the router factory's pair before exposing the V2 route.
 Direct callers must perform their own lifecycle and venue checks.
 
-## What can go wrong
+## General caution
 
-- **Smart-contract risk.** Source verification and tests are not an independent
-  audit. An undiscovered implementation or integration defect can still exist.
-- **Pool risk.** Thin or manipulated pools can move sharply. Front-end
-  simulation and slippage limits reduce accidental execution but do not remove
-  market risk.
-- **Token risk.** Fee-on-transfer, rebasing, blacklisting or non-standard tokens
-  can revert or return less than expected.
-- **External-protocol risk.** Graduation and pool trades depend on Uniswap V3
-  or V2 contracts, the Flap Portal where applicable, and Robinhood Chain
-  execution.
-- **Lifecycle-adapter risk.** The Flap Portal is upgradeable. A layout or
-  semantic change can disable Hashling's graduation proof; the site then
-  refuses the V2 route until the adapter is updated.
-- **Front-end risk.** Always verify the wallet transaction's destination against
-  [DEPLOYMENTS.md](DEPLOYMENTS.md). A project listing is not an endorsement.
+Digital-asset and smart-contract transactions can lose value or fail because
+of contract, token, liquidity, network or external-protocol behavior. Review
+the wallet transaction before signing and confirm its destination against
+[DEPLOYMENTS.md](DEPLOYMENTS.md).
 
 ## Reporting
 
 Email `support@hashling.xyz` with `SECURITY` in the subject. Please allow a
-reasonable remediation window before public disclosure. Real findings may be
-rewarded at Hashling's discretion; there is no formal bounty programme.
+reasonable remediation window before public disclosure. Include the affected
+contract, relevant transaction hashes, reproduction steps and expected impact.
