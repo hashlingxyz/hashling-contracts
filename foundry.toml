@@ -1,9 +1,9 @@
 [profile.default]
-solc = "0.8.35"
+solc_version = "0.8.35"
 evm_version = "osaka"
+remappings = ["openzeppelin-contracts/=lib/openzeppelin-contracts/"]
 optimizer = true
 optimizer_runs = 200
-remappings = ["openzeppelin-contracts/=lib/openzeppelin-contracts/"]
 fuzz = { runs = 5000 }
 invariant = { runs = 512, depth = 100 }
 src = "src"

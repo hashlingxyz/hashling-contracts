@@ -144,6 +144,49 @@ contract SwapProperties is Test {
         assertFalse(ok, "direct eth must be refused");
     }
 
+    function test_zeroFeeInstancePassesThroughFullValue() public {
+        HashlingSwap noFee = new HashlingSwap(
+            address(router),
+            address(weth),
+            feeTo,
+            0
+        );
+        uint256 value = 2 ether;
+        uint256 feeBefore = feeTo.balance;
+
+        vm.startPrank(alice);
+        uint256 tokensOut = noFee.buy{value: value}(
+            address(token),
+            100,
+            value * router.RATE(),
+            block.timestamp
+        );
+        token.approve(address(noFee), tokensOut);
+
+        uint256 balanceBeforeSell = alice.balance;
+        uint256 ethOut = noFee.sell(
+            address(token),
+            100,
+            tokensOut,
+            value,
+            block.timestamp
+        );
+        vm.stopPrank();
+
+        assertEq(noFee.feeBps(), 0);
+        assertEq(tokensOut, value * router.RATE());
+        assertEq(ethOut, value);
+        assertEq(alice.balance - balanceBeforeSell, value);
+        assertEq(feeTo.balance, feeBefore);
+        assertEq(address(noFee).balance, 0);
+        assertEq(token.balanceOf(address(noFee)), 0);
+        assertEq(weth.balanceOf(address(noFee)), 0);
+        assertEq(
+            token.allowance(address(noFee), address(router)),
+            0
+        );
+    }
+
     function test_feeRecipientRevertBlocksTrade() public {
         // A fee recipient that refuses ETH must revert the whole trade, never
         // strand ETH.
