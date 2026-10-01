@@ -64,6 +64,51 @@ and stores both immutably.
 | Wrapped native token (WETH) | `0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73` |
 | Protocol fee | `100` basis points (1%) |
 
+### Official Pons V4 wrapper (2026-09-30)
+
+Deployed on Robinhood Chain mainnet (4663) on 30 September 2026 (EDT).
+
+- [Wrapper and exact-match verified source](https://robinhoodchain.blockscout.com/address/0x7d0e8bcff4267f6b17a2257d60f0e86a41ca4752): `0x7d0e8bcff4267f6b17a2257d60f0e86a41ca4752`.
+- [Deployment transaction](https://robinhoodchain.blockscout.com/tx/0xda6ff736c262ffa4420868e6204e36a46178cb656577700dc16093a3d27851e1): block `76954690`, receipt status `1`.
+- Official factory: `0x7ed598bcef8bd9edd8c97a195c6d13f40801ec7e`.
+- The original-factory wrapper remains `0x7dD8a784e555afdf0028e309782dedc4564e96FF`. The trade page selects the wrapper using on-chain factory membership.
+
+Constructor arguments, in order:
+
+| Argument | Value |
+|---|---|
+| `poolManager_` | `0x8366a39CC670B4001A1121B8F6A443A643e40951` |
+| `hooks_` | `0xE5e702641Ea86F4ae6cC3cDaeD2B886f976Be044` |
+| `poolFee_` | `0` |
+| `tickSpacing_` | `200` |
+| `feeRecipient_` | `0x80eFCeD0d87469dCD4477064eF937d14c07D3d99` |
+| `feeBps_` | `100` (1%) |
+
+Build: Solidity `0.8.35+commit.47b9dedd`, optimizer enabled with 200 runs,
+Osaka EVM, MIT license. Source file: `src/HashlingV4Swap.sol`.
+Its SHA-256 is `b07c9765b588db1e72cf9e7da617ebbb162be10471ef39d0d6598fa4ff387a14`.
+The V4 source is available through the verified-source link above; V4 source
+and test files have not yet been mirrored into this repository.
+
+Recorded pre-deployment results: **8/8 mainnet-fork tests passed: 4 ETH-quoted
+and 4 USDG-quoted.** Fork blocks were `76716371` (ETH) and `76725202` (USDG).
+Each suite covered round-trip amounts and fees, buy and sell minimum-output
+reverts, and rejection through the legacy hook. These were local fork tests,
+separate from the live transactions below.
+
+Live HOME round trip, 30 September 2026 (EDT):
+token `0x7e58c4d63e1ad3a4827e5ca9a84484b0c1eb2ac1`, quoted in native ETH.
+
+| Receipt | Input | Output | Hashling fee (ETH) | Gas cost (ETH) |
+|---|---|---|---|---|
+| [Buy, status 1, block 76991117](https://robinhoodchain.blockscout.com/tx/0xb930d9d01aa018f5522c9d653a1b3e79b1f058e8463c1a2afedb06febe52b586) | 0.0001 ETH | 74062.520573390124527522 HOME | 0.000001 | 0.000003519779208 |
+| [Sell, status 1, block 76992000](https://robinhoodchain.blockscout.com/tx/0x335c640d997438e3650c9d992920185831cac19c6dbc5209ce45908d1e23c997) | 74062.520573390124527522 HOME | 0.000096059690288111 ETH | 0.0000009702999019 | 0.000003483729984 |
+
+Both wrapper fees matched the disclosed 1%: buy input and gross sell proceeds,
+respectively. Sell output is after the wrapper fee. The test wallet is also the
+fee recipient, so those wrapper fees returned to it. Gas costs above use receipt
+gas used multiplied by effective gas price; the separate token approval is excluded.
+
 ### Mainnet canary
 
 The minimum-supply deployment used to prove the full Factory V2 graduation

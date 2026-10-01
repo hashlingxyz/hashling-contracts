@@ -5,6 +5,9 @@ and trading front end for Robinhood Chain (chain 4663). This repository contains
 the exact public sources used for the production deployments, plus their Foundry
 tests.
 
+See the [official Pons V4 deployment record](DEPLOYMENTS.md#official-pons-v4-wrapper-2026-09-30)
+for verified source, fixed configuration, fork results and live trade receipts.
+
 ## Deployed contracts
 
 | Contract | Address | Role |
