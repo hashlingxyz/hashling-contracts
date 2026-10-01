@@ -87,8 +87,9 @@ Constructor arguments, in order:
 Build: Solidity `0.8.35+commit.47b9dedd`, optimizer enabled with 200 runs,
 Osaka EVM, MIT license. Source file: `src/HashlingV4Swap.sol`.
 Its SHA-256 is `b07c9765b588db1e72cf9e7da617ebbb162be10471ef39d0d6598fa4ff387a14`.
-The V4 source is available through the verified-source link above; V4 source
-and test files have not yet been mirrored into this repository.
+The V4 source is available at [src/HashlingV4Swap.sol](src/HashlingV4Swap.sol)
+and through the verified-source link above. V4 test files have not yet been
+mirrored into this repository.
 
 Recorded pre-deployment results: **8/8 mainnet-fork tests passed: 4 ETH-quoted
 and 4 USDG-quoted.** Fork blocks were `76716371` (ETH) and `76725202` (USDG).
